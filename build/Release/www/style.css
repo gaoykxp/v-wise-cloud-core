@@ -1,0 +1,74 @@
+/* V-Wise Cloud Core 联调看板 —— 深色主题，零依赖 */
+:root {
+  --bg: #0f1419;
+  --panel: #1a222c;
+  --panel2: #223041;
+  --text: #d7e0ea;
+  --muted: #7a8b9d;
+  --accent: #4fc3f7;
+  --good: #4caf50;
+  --bad: #ef5350;
+  --warn: #ffb300;
+  --border: #2c3a49;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  padding: 14px;
+  min-width: 900px;
+}
+header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.title { font-size: 19px; font-weight: 600; color: var(--accent); }
+.title .sub { font-size: 13px; color: var(--muted); margin-left: 10px; font-weight: 400; }
+.conn { font-size: 13px; }
+.conn.ok { color: var(--good); }
+.conn.err { color: var(--bad); }
+
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.card h3 { font-size: 13px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+.kv { display: flex; justify-content: space-between; padding: 2px 0; }
+.kv span { color: var(--muted); }
+.mode-row { padding: 3px 0; }
+.mode-row b { color: var(--accent); }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; }
+.badge.on  { background: rgba(76,175,80,.18); color: var(--good); }
+.badge.off { background: rgba(123,139,157,.18); color: var(--muted); }
+.badge.bad { background: rgba(239,83,80,.18); color: var(--bad); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; font-weight: 400; }
+
+.charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+.chart-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.chart-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+canvas { width: 100%; height: 150px; display: block; }
+
+.lower { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.panel h3 { font-size: 13px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+
+.events-panel { max-height: 260px; overflow-y: auto; }
+.ev { padding: 3px 6px; border-left: 3px solid var(--border); margin-bottom: 4px; font-size: 13px; }
+.ev .t { color: var(--muted); margin-right: 8px; font-size: 12px; }
+.ev.mode_change { border-color: var(--accent); }
+.ev.link_down   { border-color: var(--bad); color: var(--bad); }
+.ev.link_up     { border-color: var(--good); }
+.ev.control     { border-color: var(--warn); }
+
+.ctl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.ctl-label { color: var(--muted); min-width: 110px; }
+button {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+  padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+#ctl-msg { font-size: 12px; margin-bottom: 8px; min-height: 16px; }
+
+.acc-row { display: flex; justify-content: space-between; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.acc-row .desc { color: var(--muted); }
+.acc-row .val { font-family: Consolas, monospace; margin-right: 10px; }
+.st-pass { color: var(--good); font-weight: 700; }
+.st-fail { color: var(--bad); font-weight: 700; }
+.st-na   { color: var(--muted); }

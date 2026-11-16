@@ -1,0 +1,10 @@
+^C:\USERS\GAOYE\DESKTOP\SDK-RD\V-WISE-ALL-STACK\V-WISE-AGENT-CPP-SDK-DSDA\V-WISE-CLOUD-CORE\BUILD\CMAKEFILES\DBD75DB8383B2BB279BF62A49EE82893\GENERATE.STAMP.RULE
+setlocal
+C:\Users\gaoye\AppData\Local\Microsoft\WinGet\Packages\Kitware.CMake_Microsoft.Winget.Source_8wekyb3d8bbwe\cmake-4.4.4-windows-x86_64\bin\cmake.exe -SC:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core -BC:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core/build/vwise_cloud_core.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
