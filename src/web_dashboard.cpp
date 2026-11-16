@@ -29,6 +29,26 @@ void WebDashboard::stop() {
     if (!running_.exchange(false)) return;
     listen_.close(); /* 使阻塞 accept 退出 */
     if (th_.joinable()) th_.join();
+    /* 回收所有连接线程（含仍在 3s recv 超时内的），此后无人再引用 srv_ */
+    std::vector<std::unique_ptr<ConnTask>> wait;
+    {
+        std::lock_guard<std::mutex> lk(conn_mtx_);
+        wait.swap(conns_);
+    }
+    for (auto &t : wait)
+        if (t->th.joinable()) t->th.join();
+}
+
+/* 回收已结束的连接线程（调用方持 conn_mtx_） */
+void WebDashboard::sweep_conns_locked() {
+    for (auto it = conns_.begin(); it != conns_.end();) {
+        if ((*it)->done.load()) {
+            if ((*it)->th.joinable()) (*it)->th.join();
+            it = conns_.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void WebDashboard::accept_loop() {
@@ -40,8 +60,17 @@ void WebDashboard::accept_loop() {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
-        std::thread t(&WebDashboard::handle_conn, this, conn);
-        t.detach();
+        std::lock_guard<std::mutex> lk(conn_mtx_);
+        sweep_conns_locked();
+        if (conns_.size() >= 64) { /* 连接数上限：防线程耗尽（测试看板 1s 轮询足够） */
+            conn->close();
+            delete conn;
+            continue;
+        }
+        auto task = std::make_unique<ConnTask>();
+        ConnTask *raw = task.get();
+        task->th = std::thread(&WebDashboard::handle_conn, this, conn, raw);
+        conns_.push_back(std::move(task));
     }
 }
 
@@ -60,23 +89,28 @@ static void http_send(TcpSocket &s, int status, const std::string &ctype,
     s.send_all(body.data(), (int)body.size());
 }
 
-void WebDashboard::handle_conn(TcpSocket *conn) {
+void WebDashboard::handle_conn(TcpSocket *conn, ConnTask *self) {
     std::unique_ptr<TcpSocket> guard(conn);
-    conn->set_recv_timeout_ms(3000);
+    serve_one(*conn);
+    self->done.store(true); /* 通知 accept 线程可回收本线程对象 */
+}
+
+void WebDashboard::serve_one(TcpSocket &conn) {
+    conn.set_recv_timeout_ms(3000);
 
     /* 读到头部结束（最多 8KB） */
     std::string req;
     char buf[2048];
     size_t header_end = std::string::npos;
     while (req.size() < 8192) {
-        int n = conn->recv(buf, sizeof(buf));
+        int n = conn.recv(buf, sizeof(buf));
         if (n <= 0) break;
         req.append(buf, (size_t)n);
         header_end = req.find("\r\n\r\n");
         if (header_end != std::string::npos) break;
     }
     if (header_end == std::string::npos) {
-        http_send(*conn, 400, "text/plain", "bad request");
+        http_send(conn, 400, "text/plain", "bad request");
         return;
     }
 
@@ -86,7 +120,7 @@ void WebDashboard::handle_conn(TcpSocket *conn) {
     size_t sp1 = line.find(' ');
     size_t sp2 = line.rfind(' ');
     if (sp1 == std::string::npos || sp2 == sp1) {
-        http_send(*conn, 400, "text/plain", "bad request");
+        http_send(conn, 400, "text/plain", "bad request");
         return;
     }
     std::string method = line.substr(0, sp1);
@@ -111,7 +145,7 @@ void WebDashboard::handle_conn(TcpSocket *conn) {
         if (cl_pos != std::string::npos) want = (size_t)atoi(req.c_str() + cl_pos + 15);
         if (want > 4096) want = 4096;
         while (body_have < want) {
-            int n = conn->recv(buf, sizeof(buf));
+            int n = conn.recv(buf, sizeof(buf));
             if (n <= 0) break;
             req.append(buf, (size_t)n);
             body_have = req.size() - body_start;
@@ -122,7 +156,7 @@ void WebDashboard::handle_conn(TcpSocket *conn) {
     std::string out, ctype = "application/json";
     int status = 200;
     if (!route(method, path, query, body, out, ctype, status)) status = 404;
-    http_send(*conn, status, ctype, out);
+    http_send(conn, status, ctype, out);
 }
 
 bool WebDashboard::serve_file(const std::string &rel, std::string &out, std::string &ctype) {

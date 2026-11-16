@@ -1,4 +1,0 @@
-C:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core/build/CMakeFiles/vwise_cloud_core.dir
-C:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core/build/CMakeFiles/INSTALL.dir
-C:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/gaoye/Desktop/SDK-RD/V-Wise-All-Stack/v-wise-agent-cpp-sdk-dsda/v-wise-cloud-core/build/CMakeFiles/ZERO_CHECK.dir

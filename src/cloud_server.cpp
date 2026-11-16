@@ -107,6 +107,12 @@ void CloudServer::clear_stats() {
     }
     last_unique_ = last_dup_ = last_dl_sent_ = 0;
     last_first_[0] = last_first_[1] = 0;
+    /* 匹配对同步清零：否则下一帧 TERM_STATS 到达前（≤2s）P2 显示清零前的旧差值 */
+    {
+        std::lock_guard<std::mutex> lk(match_mtx_);
+        match_term_rx_ = match_term_unique_ = 0;
+        match_dl_copies_ = match_dl_sent_ = 0;
+    }
     reset_epoch_locked();
     add_event("control", "stats cleared");
 }
@@ -158,6 +164,8 @@ void CloudServer::reset_epoch_locked() {
     epoch_dup_ = s[1];
     epoch_first_[0] = s[2];
     epoch_first_[1] = s[3];
+    for (int i = 0; i < 8 && i < (int)anchors_.size(); ++i)
+        epoch_anchor_rx_[i] = anchors_[i]->rx_packets();
     {
         std::lock_guard<std::mutex> lk(match_mtx_);
         epoch_match_dl_copies_ = match_dl_copies_;
@@ -460,11 +468,17 @@ void CloudServer::append_acceptance(std::string &j) {
         entry("P1-2", "(first0+first1)/unique", v, (v > 0.98 && v < 1.02) ? 1 : 2);
     } else entry("P1-2", "(first0+first1)/unique", -1, 0);
 
-    /* P1-3: 防复制风暴——任一锚点收包/unique <= 2.2（双发每锚点至多 1×unique + 探测） */
+    /* P1-3: 防复制风暴——锚点收包(epoch 差分，两锚点取 max)/unique <= 2.2
+     * （双发每锚点至多 1×unique + 探测；max 覆盖两锚点，比单锚点更严） */
     if (e_unique >= kMinPkts && anchor_ptrs_.size() >= 2) {
-        double v = (double)anchors_[0]->rx_packets() / (double)(s[0] > 0 ? s[0] : 1);
-        entry("P1-3", "anchor_rx/unique (storm)", v, v < 2.2 ? 1 : 2);
-    } else entry("P1-3", "anchor_rx/unique (storm)", -1, 0);
+        uint64_t amax = 0;
+        for (int i = 0; i < 2; ++i) {
+            uint64_t a = anchors_[i]->rx_packets() - epoch_anchor_rx_[i];
+            if (a > amax) amax = a;
+        }
+        double v = (double)amax / (double)e_unique;
+        entry("P1-3", "max_anchor_rx/unique (storm)", v, v < 2.2 ? 1 : 2);
+    } else entry("P1-3", "max_anchor_rx/unique (storm)", -1, 0);
 
     /* P2-1: dual 下行 终端 rx / 实际发出副本数 ≈ 1
      * 容差 ±5%：TERM_STATS 2s 快照与连续计数器存在固有采样时基偏差 */

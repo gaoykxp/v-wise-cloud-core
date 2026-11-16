@@ -123,6 +123,7 @@ private:
 
     /* 验收 epoch 基线（模式切换/清零时重置） */
     uint64_t epoch_unique_ = 0, epoch_dup_ = 0, epoch_first_[8] = {0};
+    uint64_t epoch_anchor_rx_[8] = {0}; /* per-锚点收包基线（P1-3 epoch 差分） */
     uint64_t epoch_term_rx_ = 0, epoch_term_unique_ = 0;
     std::string epoch_term_mode_;  /* epoch 起始时终端模式 */
     std::string epoch_dl_mode_;    /* epoch 起始时下行模式 */

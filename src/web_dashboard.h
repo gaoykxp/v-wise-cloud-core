@@ -16,8 +16,11 @@
 #include "cloud_server.h"
 #include "net.h"
 #include <atomic>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace vwise {
 namespace cloud {
@@ -32,8 +35,17 @@ public:
     void stop();
 
 private:
+    /* 连接任务：done 由连接线程结束时置位，accept 线程回收 join——
+     * 保证 stop() 时所有引用 srv_ 的线程都已结束（避免 use-after-free） */
+    struct ConnTask {
+        std::thread th;
+        std::atomic<bool> done{false};
+    };
+
     void accept_loop();
-    void handle_conn(TcpSocket *conn);
+    void handle_conn(TcpSocket *conn, ConnTask *self);
+    void serve_one(TcpSocket &conn); /* 单连接处理（含所有早退路径） */
+    void sweep_conns_locked();
     /* 返回 false=未命中路由；命中时填 body/ctype */
     bool route(const std::string &method, const std::string &path,
                const std::string &query, const std::string &body,
@@ -45,6 +57,8 @@ private:
     std::thread th_;
     std::atomic<bool> running_{false};
     std::string www_dir_;
+    std::mutex conn_mtx_;
+    std::vector<std::unique_ptr<ConnTask>> conns_;
 };
 
 } // namespace cloud
